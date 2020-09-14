@@ -1,0 +1,215 @@
+---
+title: "Homework 1"
+Author: Mostafa Ragheb
+date: "8/31/2020"
+output:
+  pdf_document: default
+  html_document: default
+Group: Nicole_Kerrison; group Isabela Vieira, Akimawe Kadiri, Christopher Tinevra,
+  Mostafa Ragheb
+---
+
+Question 3: 
+
+Theoretical probability of roll - the expectation is to roll a 6 at least once  1/36 (.02778)
+
+
+How to create a fair dice simulation in R. First we begin by creating a variable called dice rolls and set the size to 2 so we make clear we are using 2 dice and any time we roll we want replacements of numbers.
+
+```{r}
+die.rolls <- function (){
+  dice <- sample(x=1:6, size = 2, replace = TRUE)}
+
+```
+
+Then we want to create a simulation that runs this 20 times
+
+```{r}
+simtrial <- replicate(20,die.rolls())
+```
+
+Then create a table to of the simulation once its complete.
+
+```{r}
+table(simtrial)
+```
+Results of the experimental probability is ____/36 (probability)
+
+#Then generate the frequency of the outcome and plot the data
+
+Frequency - this is the % of times we virtually rolled the numbers below
+
+```{r}
+table(simtrial)/length(simtrial)
+```
+
+
+Plot - This plots the number of times in the simulation roll that we record a number 
+
+```{r}
+plot(table(simtrial), xlab = 'Dice number', ylab = 'Frequency', main = '20 Rolls of 2 Fair Dice')
+```
+
+Question 4:
+
+x <- 1:50
+w <- 1 + sqrt(x)/2
+example1 <- data.frame(x=x, y= x + rnorm(x)*w)
+attach(example1)
+fm <- lm(y ~ x)
+summary(fm)
+
+lrf <- lowess(x, y)
+plot(x, y)
+lines(x, lrf$y)
+abline(0, 1, lty=3)
+abline(coef(fm))
+
+load("/Users/mostafaragheb/Desktop/CCNY/4th ( Fall 2020)/Economatrics/HW1/acs2017_ny/acs2017_ny_data.RData")
+
+acs2017_ny[1:10,1:7]
+attach(acs2017_ny)
+summary(acs2017_ny)
+print(NN_obs <- length(AGE)) 
+
+summary(AGE[Female == 1])
+
+summary(acs2017_ny)
+
+length(acs2017_ny$AGE)
+
+summary(acs2017_ny$AGE)
+
+
+print(NN_obs <- length(AGE))
+
+summary(AGE[female == 1])
+
+summary(AGE[!female])
+
+summary(AGE[female == 0])
+
+mean(AGE[female == 1])
+
+sd(AGE[female == 1])
+
+mean(AGE[!female])
+
+sd(AGE[!female])
+
+summary(educ_college[female == 1])
+summary(educ_college[female == 0])
+mean(educ_college[female == 1])
+sd(educ_college[female == 1])
+sd(educ_college[female == 0])
+
+# A Minor diff between men and woman in College education 
+#female has a higher average with Slighly higher SD than men 
+
+
+
+
+
+Question 5: 
+
+
+
+setwd("~/Desktop/CCNY/4th ( Fall 2020)/Economatrics/HW1")
+`S_P_Stock_Price` <- read.csv("~/Desktop/CCNY/4th ( Fall 2020)/Economatrics/HW1/S&P 500 Index Price.csv")
+View(`S_P_Stock_Price`)
+
+
+
+Analyzing Stock Prices in R studio - Nicole Kerrison
+
+#Make sure you upload only csv files and never excel
+
+Calculating the returns on the S&P with the data imported in R
+
+This tells you the values at the beginning of the table
+
+
+```{r}
+head(S_P_Stock_Price)
+```
+
+This tells you the values at the end of the table
+
+```{r}
+tail(S_P_Stock_Price)
+```
+
+
+this brings up just the adj close numbers of the S&P
+
+```{r}
+S_P_Stock_Price[1:30, "Adj.Close"]
+```
+
+
+We want to isolate the adj close values of the s&p in order to calculate returns
+
+obtain the specific price between these dates. The brackets are blank because there is only 
+21 values in the data set. We would need a range or index if there was more. 
+
+```{r}
+new_price <- S_P_Stock_Price[ ,"Adj.Close"]
+```
+
+
+Now we create a new variable with just the adjusted close prices
+
+
+sp_pricenew <- S_P_Stock_Price[, "Adj.Close", drop = FALSE]
+rownames(sp_pricenew)<- S_P_Stock_Price$Date
+head(sp_pricenew)
+
+
+
+continuous compounding returns
+you want to find the return over a period of time and need to provide a value "n"
+so in your calculation you know that you are subtracting from the previous day
+
+
+n <-nrow(sp_pricenew)
+
+sp_returns <- log(sp_pricenew[2:n,1])-log(sp_pricenew[1:(n-1),1])
+```
+
+
+Assign a name to the continuous returns 
+
+```{r}
+names(sp_returns)<-S_P_Stock_Price[2:n,1]
+head(sp_returns)
+```
+
+
+summary of the new data by running a quick analysis
+
+```{r}
+summary(sp_returns)
+```
+
+
+observing all of the data at once
+
+```{r}
+print(sp_returns)
+```
+
+And finally to view the data as a row/columnn, use function below. This will allow you to see that there are specific dates where negative returns have followed a positive return day - ex 7/27 and consecutive days of postive returns followed a negative return day ex: 7/7, 7/16, 7/23 "this has more pos days"
+
+```{r}
+cbind(sp_returns)
+```
+
+
+Graph the returns (If you wish)
+
+```{r}
+plot(sp_returns, type = "l", col = "blue", lwd = 2, 
+     ylab = "Returns", main = "Daily Returns for S&P 500 in July")
+legend(x = 'topleft', legend = 'sp_returns', lty = 1, lwd = 2, col = 'blue')
+
+```
