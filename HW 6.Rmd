@@ -1,0 +1,104 @@
+---
+title: "HW 6"
+output: html_document
+Author: Mostafa Ragheb ,  Team: Kadiri 
+---
+
+
+```{r}
+ load("/Users/mostafaragheb/Desktop/CCNY/4th ( Fall 2020)/Economatrics/acs2017_ny/acs2017_ny_data.RData")
+```
+
+
+```{r}
+acs2017_ny$LABFORCE <- as.factor(acs2017_ny$LABFORCE)
+levels(acs2017_ny$LABFORCE) <- c("NA","Not in LF","in LF")
+
+acs2017_ny$MORTGAGE <- as.factor(acs2017_ny$MORTGAGE)
+levels(acs2017_ny$MORTGAGE) <- c("NA" , "No, owned free and clear" , "Check mark on manuscript (probabably yes)" ,"Yes, mortgaged/ deed of trust or similar debt" , "Yes, contract to purchase")
+
+acs2017_ny$MARST <- as.factor(acs2017_ny$MARST)
+levels(acs2017_ny$MARST) <- c("married spouse present","married spouse absent","separated","divorced","widowed","never married")
+```
+
+
+```{r}
+acs2017_ny$age_bands <- cut(acs2017_ny$AGE,breaks=c(0,25,35,45,55,65,100))
+table(acs2017_ny$age_bands,acs2017_ny$LABFORCE)
+```
+
+```{r}
+pick_use1 <- (acs2017_ny$AGE >25) & (acs2017_ny$AGE <= 55)
+dat_use1 <- subset(acs2017_ny, pick_use1)
+
+dat_use1$LABFORCE <- droplevels(dat_use1$LABFORCE)
+dat_use1$MORTGAGE <- droplevels(dat_use1$MORTGAGE)
+```
+
+```{r}
+model_logit1 <- glm(LABFORCE ~ AGE,
+            family = binomial, data = dat_use1)
+
+summary(model_logit1)
+```
+
+```{r}
+model_logit2 <- glm(LABFORCE ~ AGE + I(AGE^2) + female + AfAm + Asian  + Hispanic 
+            + educ_hs + educ_somecoll + educ_college + educ_advdeg 
+            + MARST,
+            family = binomial, data = dat_use1)
+summary(model_logit2)
+```
+
+
+Probabilty that a 40 years old single African American woman with college education in the Laborforce
+
+```{r}
+1/(1+(exp(1))^(0.6006661+(0.0168976*40) + (-0.0003110 *(40^2)) + (-0.6844454*1) + (-0.1831762*1) + (1.9456646*1) + (-0.1277946*1)+ (0.0619842*1) + (-0.3051101*1) +(-0.3867477*1) ))
+```
+
+```{r}
+model_logit3 <- glm(LABFORCE ~ AGE + I(AGE^2) + female + AfAm + Asian  + Hispanic 
+            + educ_hs + educ_somecoll + educ_college + educ_advdeg 
+            + MARST + MORTGAGE,
+            family = binomial, data = dat_use1)
+summary(model_logit3)
+to_be_predicted1 <- data.frame(AGE = 25:65, female = 1,white = 0, Hispanic = 0, AfAm =1, educ_hs = 0, educ_college = 1, educ_advdeg = 0 , MARST = "separated","divorced","widowed","never married" , MORTGAGE = "Yes, mortgaged/ deed of trust or similar debt" , Asian = 0 , educ_somecoll = 0)
+to_be_predicted1$yhat <- predict(model_logit3, newdata = to_be_predicted1)
+
+plot(LABFORCE ~ AGE, pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,150000), data = dat_use1)
+
+lines(yhat ~ AGE, data = to_be_predicted1)
+```
+
+Probability of a 40 single africn american women with college education and mortgage being in the labor force
+```{r}
+1/(1+(exp(1))^(0.4357601 + (0.0134950*40) + (-0.0003049*(40)^2) + (-0.6843543*1) + (-0.0918750*1) + (1.8482845*1) + ( 0.0288694*1) + ( 0.1724891*1) + (-0.1992328*1) + (-0.2496299) + ( 0.4299228*1) ))
+```
+
+Probit Model 
+```{r}
+
+model_probit1 <- glm(LABFORCE ~ AGE + I(AGE^2) + female + AfAm + Asian  + Hispanic 
+            + educ_hs + educ_somecoll + educ_college + educ_advdeg 
+            + MARST + MORTGAGE,
+            family = binomial (link = 'probit'), data = dat_use1)
+summary(model_probit1)
+
+to_be_predicted2 <- data.frame(AGE = 25:65, female = 1,white = 0, Hispanic = 0, AfAm =1, educ_hs = 0, educ_college = 1, educ_advdeg = 0 , MARST = "separated","divorced","widowed","never married" , MORTGAGE = "Yes, mortgaged/ deed of trust or similar debt" , Asian = 0 , educ_somecoll = 0)
+to_be_predicted2$yhat <- predict(model_logit3, newdata = to_be_predicted1)
+
+plot(LABFORCE ~ AGE, pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,150000), data = dat_use1)
+
+lines(yhat ~ AGE, data = to_be_predicted1)
+```
+
+Probability of a 40 single africn american women with college education and mortgage being in the labor force
+
+```{r}
+
+pnorm(2.773e-01 + ( 7.571e-03*40) + (-0.0001736*(40)^2) + (-0.4003*1) + (-5.862e-02*1) + (1.068e+00*1) + ( 1.719e-02*1) + ( 9.797e-02*1) + (-1.219e-01*1) + ( -1.376e-01*1) + (2.481e-01*1))
+```
+
+
+
