@@ -1,0 +1,202 @@
+---
+title: "HW 7"
+output: html_document
+Author: Mostafa Ragheb Team: Kadiri
+---
+
+```{r}
+load("/Users/mostafaragheb/Desktop/CCNY/4th ( Fall 2020)/Economatrics/Data/NHIS_2014.RData")
+```
+
+
+```{r}
+data_use1$earn_lastyr <- as.factor(data_use1$ERNYR_P)
+levels(data_use1$earn_lastyr) <- c("0","$01-$4999","$5000-$9999","$10000-$14999","$15000-$19999","$20000-$24999","$25000-$34999","$35000-$44999","$45000-$54999","$55000-$64999","$65000-$74999","$75000 and over",NA,NA,NA)
+```
+
+#Filtering data by age over 18 years old
+```{r}
+attach(data_use1)
+use_varb <-  (AGE_P>18)  
+dat_use <- subset(data_use1,use_varb)
+detach()
+```
+
+#Changing Region, Region born and personal health to a dummy variables that can be used in analysis.
+```{r}
+d_region <- data.frame(model.matrix(~ dat_use$REGION))
+d_region_born <- data.frame(model.matrix(~ factor(dat_use$region_born)))
+d_PH <- data.frame((model.matrix(~factor(dat_use$person_healthstatus))))
+```
+
+#The Model is examining the people over 18 years old, education level , race , gender, martial status, region and place of birth and their health status. 
+```{r}
+model_logit1 <- glm(NOTCOV ~ AGE_P + I(AGE_P^2) + female + AfAm + Asian + RaceOther  
+                    + Hispanic + educ_hs + educ_smcoll + educ_as + educ_bach + educ_adv 
+                    + married + widowed + divorc_sep + veteran_stat + REGION + person_healthstatus +  region_born,
+                    family = binomial, data = dat_use)
+
+```
+
+#Creating a new data set to include the new dummy variables (region, region born and personal health status)
+```{r}
+dat_for_analysis_sub <- data.frame(
+  dat_use$NOTCOV,
+  dat_use$AGE_P,
+  dat_use$female,
+  dat_use$AfAm,
+  dat_use$Asian,
+  dat_use$RaceOther,
+  dat_use$Hispanic,
+  dat_use$educ_hs,
+  dat_use$educ_smcoll,
+  dat_use$educ_as,
+  dat_use$educ_bach,
+  dat_use$educ_adv,
+  dat_use$married,
+  dat_use$widowed,
+  dat_use$person_healthstatus,
+  dat_use$divorc_sep,
+  d_region[,2:4],
+  d_region_born[,2:12],
+  d_PH[,2:7])
+
+names(dat_for_analysis_sub) <- c("NOTCOV",
+                                 "Age",
+                                 "female",
+                                 "AfAm",
+                                 "Asian",
+                                 "RaceOther",
+                                 "Hispanic",
+                                 "educ_hs",
+                                 "educ_smcoll",
+                                 "educ_as",
+                                 "educ_bach",
+                                 "educ_adv",
+                                 "married",
+                                 "widowed",
+                                 "Vgood",
+                                 "Good",
+                                 "Fair",
+                                 "Poor",
+                                 "Refused",
+                                 "Not.ascertained",
+                                 "divorc_sep",
+                                 "Region.Midwest",
+                                 "Region.South",
+                                 "Region.West",
+                                 "born.Mex.CentAm.Carib",
+                                 "born.S.Am",
+                                 "born.Eur",
+                                 "born.f.USSR",
+                                 "born.Africa",
+                                 "born.MidE",
+                                 "born.India.subc",
+                                 "born.Asia",
+                                 "born.SE.Asia",
+                                 "born.elsewhere",
+                                 "born.unknown")
+
+
+```
+
+```{r}
+install.packages("standaridize")
+```
+
+
+#standardizing data set
+```{r}
+require("standardize")
+set.seed(654321)
+NN <- length(dat_for_analysis_sub$NOTCOV)
+restrict_1 <- (runif(NN) < 0.1) 
+summary(restrict_1)
+dat_train <- subset(dat_for_analysis_sub, restrict_1)
+dat_test <- subset(dat_for_analysis_sub, !restrict_1)
+sobj <- standardize(NOTCOV ~ Age + female + AfAm + Asian + RaceOther + Hispanic + 
+                      educ_hs + educ_smcoll + educ_as + educ_bach + educ_adv + 
+                      married + widowed + Vgood + Good + Fair + Poor + Refused +
+                      Not.ascertained + divorc_sep + 
+                      Region.Midwest + Region.South + Region.West + 
+                      born.Mex.CentAm.Carib + born.S.Am + born.Eur + born.f.USSR + 
+                      born.Africa + born.MidE + born.India.subc + born.Asia + 
+                      born.SE.Asia + born.elsewhere + born.unknown, dat_train, family = binomial)
+
+s_dat_test <- predict(sobj, dat_test)
+summary(s_dat_test)
+```
+
+
+```{r}
+model_lpm1 <- lm(sobj$formula, data = sobj$data)
+summary(model_lpm1)
+pred_vals_lpm <- predict(model_lpm1, s_dat_test)
+pred_model_lpm1 <- (pred_vals_lpm > 0.5)
+table(pred = pred_model_lpm1, true = dat_test$NOTCOV)
+```
+# Model lpm1 is showing that the model predicted People with health coverage are 63,195 wih error of 10,006, givig the percentage error equal: 13.6%
+```{r}
+10006/(63195+10006)
+```
+#While the predicted value for people who doesn't have coverage is 751 with error of 293, giving the percentage error equal: 28%
+```{r}
+293/(751+293)
+```
+
+
+
+```{r}
+model_logit1 <- glm(sobj$formula, family = binomial, data = sobj$data)
+summary(model_logit1)
+pred_vals <- predict(model_logit1, s_dat_test, type = "response")
+pred_model_logit1 <- (pred_vals > 0.5)
+table(pred = pred_model_logit1, true = dat_test$NOTCOV)
+```
+# Model logit1 is showing that the model predicted People with health coverage are 62,222 wih error of 8,873, givig the percentage error equal: 12.4%
+```{r}
+8873/(62222+8873)
+```
+#While the predicted value for people who doesn't have coverage is 1,884 with error of 1,266, giving the percentage error equal: 40%
+```{r}
+1266/(1266+1884)
+```
+
+
+
+```{r}
+require('randomForest')
+set.seed(54321)
+model_randFor <- randomForest(as.factor(NOTCOV) ~ ., data = sobj$data, importance=TRUE, proximity=TRUE)
+print(model_randFor)
+round(importance(model_randFor),2)
+varImpPlot(model_randFor)
+# look at confusion matrix for this too
+pred_model1 <- predict(model_randFor,  s_dat_test)
+table(pred = pred_model1, true = dat_test$NOTCOV)
+```
+# According to forest model the error percent is:
+
+#Predicted people who has coverage error: 0.01127927
+#Predicted people who doesn't have coverage error:0.88953975
+
+```{r}
+require(e1071)
+# tuned_parameters <- tune.svm(as.factor(NOTCOV) ~ ., data = sobj$data, gamma = 10^(-3:0), cost = 10^(-2:1)) 
+# summary(tuned_parameters)
+# figure best parameters and input into next
+svm.model <- svm(as.factor(NOTCOV) ~ ., data = sobj$data, cost = 10, gamma = 0.1)
+svm.pred <- predict(svm.model, s_dat_test)
+table(pred = svm.pred, true = dat_test$NOTCOV)
+```
+
+# Model svm is showing that the model predicted People with health coverage are 60,212 wih error of 8,286, givig the percentage error equal: 12%
+```{r}
+8286/(60212+8286)
+```
+#While the predicted value for people who doesn't have coverage is 2,471 with error of 3,276, giving the percentage error equal: 57%
+```{r}
+3276/(3276+2471)
+```
+
+#Comparing the 4 models together Model_randfor has the lowest percentage error in predicting people who has health coverage  
