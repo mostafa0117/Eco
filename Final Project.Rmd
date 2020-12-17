@@ -1,0 +1,202 @@
+---
+title: "Final"
+output: html_document
+---
+
+```{r}
+load("/Users/mostafaragheb/Downloads/brfss_data/BRFSS2013_a.RData")
+```
+
+```{r}
+data3.1 <- na.omit(dat3)
+```
+
+```{r}
+d_Smoke <- data.frame(model.matrix(~ data3.1$X_SMOKER3))
+d_Gender <- data.frame(model.matrix(~data3.1$SEX))
+d_employ <- data.frame(model.matrix(~data3.1$EMPLOY1))
+d_activitylevel <- data.frame(model.matrix(~data3.1$X_PACAT1))
+```
+
+```{r}
+Data_Final = data.frame(data3.1$BMI_measure , data3.1$X_AGE80 , d_Gender[,2],
+                        data3.1$SLEPTIM1, data3.1$d_overweight , d_Smoke[,2:4] ,
+                        d_employ[,2:8],d_activitylevel)
+names(Data_Final) = c("BMI" , "Age" ,"Gender", "Sleeptime"  , "Overweight",
+                      "Smoker" , "use.to.smoke" ,"Never.smoked", "Self.employed",
+                      "Out.of.work.for.a.year.or.more",
+                      "Out.of.work.less.than.a.year","Homemaker","student",
+                      "Retired","Unable.to.work","Active","insufficent.active","Inactive")
+```
+
+```{r}
+Model_1 = lm(BMI ~ Age + Gender + Sleeptime + Smoker + use.to.smoke + Never.smoked 
+             + Self.employed + Out.of.work.for.a.year.or.more +
+               Out.of.work.less.than.a.year + Homemaker + student + Retired +
+               Unable.to.work  + insufficent.active + Inactive, data = Data_Final)
+plot(Model_1$fitted.values , Data_Final$BMI)
+    abline(a=coef(Model_1)[1],
+           b=coef(Model_1)[2],
+           col="red",
+           lwd=3)
+    
+summary(Model_1)
+
+cor(Data_Final$BMI , Data_Final$Age)
+cor(Data_Final$BMI , Data_Final$Sleeptime)
+
+```
+
+```{r}
+attach(Data_Final)
+NNobs <- length(BMI)
+set.seed(12345)
+graph_obs <- (runif(NNobs) < 0.1)
+dat_graph <-subset(Data_Final,graph_obs)  
+
+plot(BMI ~ Sleeptime, pch = 16, col = rgb(0.5, 0.5, 0.5), data = dat_graph)
+
+to_be_predicted1 <- data.frame(Data_Final) 
+to_be_predicted1$yhat <- predict(Model_1, newdata = to_be_predicted1)
+
+lines(yhat ~ Sleeptime, data = to_be_predicted1)
+
+```
+
+```{r}
+Model_2 = lm((BMI^2) ~ Age + Gender + Sleeptime + Smoker + use.to.smoke + Never.smoked 
+             + Self.employed + Out.of.work.for.a.year.or.more +
+               Out.of.work.less.than.a.year + Homemaker + student + Retired +
+               Unable.to.work + insufficent.active + Inactive, data = Data_Final)
+plot(Data_Final$BMI,Model_2$fitted.values)
+    abline(a=coef(Model_2)[1],
+           b=coef(Model_2)[2],
+           col="red",
+           lwd=3)
+    
+summary(Model_2)
+```
+```{r}
+Model_3 = lm( log(BMI) ~  Age + Gender + Sleeptime + Smoker + use.to.smoke +
+                Never.smoked  + Self.employed + Out.of.work.for.a.year.or.more +
+               Out.of.work.less.than.a.year + Homemaker + student + Retired +
+               Unable.to.work + insufficent.active + Inactive , data = Data_Final)
+
+    plot(Data_Final$BMI,Model_3$fitted.values)
+    abline(a=coef(Model_3)[1],
+           b=coef(Model_3)[2],
+           col="red",
+           lwd=3)
+
+summary(Model_3)
+```
+
+```{r}
+Model_4 = lm(log(Data_Final$BMI) ~ Data_Final$Sleeptime)
+summary(Model_4)
+
+plot(Data_Final$Sleeptime,Data_Final$BMI)
+
+```
+
+```{r}
+Model_5 = lm(log(Data_Final$BMI) ~ Data_Final$Age)
+summary(Model_5)
+
+plot(Data_Final$Age,Data_Final$BMI)
+```
+```{r}
+Model_6 = lm(Data_Final$BMI ~ Data_Final$Sleeptime + Data_Final$Age)
+summary(Model_6)
+
+par(mfrow=c(1,2))
+plot(Data_Final$Sleeptime,Data_Final$BMI)
+abline( a = coef(Model_6)[1] , b = coef(Model_6)[2] , col = "red")
+plot(Data_Final$Age,Data_Final$BMI)
+abline( a = coef(Model_6)[1] , b = coef(Model_6)[2] , col = "red")
+```
+
+```{r}
+Model_7 = lm(log(Data_Final$BMI) ~ Data_Final$Sleeptime + Data_Final$Age)
+summary(Model_7)
+
+par(mfrow=c(1,2))
+plot(Data_Final$Sleeptime,Data_Final$BMI)
+abline( a = coef(Model_7)[1] , b = coef(Model_7)[2] , col = "red")
+plot(Data_Final$Age,Data_Final$BMI)
+abline( a = coef(Model_7)[1] , b = coef(Model_7)[2] , col = "red")
+```
+
+```{r}
+Model_8 = lm(log(BMI) ~  Sleeptime + use.to.smoke
+              + Out.of.work.for.a.year.or.more +
+               Homemaker  + insufficent.active, data = Data_Final)
+plot(Model_8$fitted.values , Data_Final$BMI)
+    abline(a=coef(Model_8)[1],
+           b=coef(Model_8)[2],
+           col="red",
+           lwd=3)
+summary(Model_8)    
+```
+
+```{r}
+require("standardize")
+set.seed(654321)
+NN <- length(Data_Final$Overweight)
+restrict_1 <- (runif(NN) < 0.1) 
+summary(restrict_1)
+dat_train <- subset(Data_Final, restrict_1)
+dat_test <- subset(Data_Final, !restrict_1)
+sobj <- standardize(Overweight ~ Age 
+                    + Gender + Sleeptime + Smoker + use.to.smoke + Never.smoked 
+             + Self.employed + Out.of.work.for.a.year.or.more +
+               Out.of.work.less.than.a.year + Homemaker + student + Retired +
+               Unable.to.work  + insufficent.active + Inactive + BMI, dat_train, family = binomial)
+
+s_dat_test <- predict(sobj, dat_test)
+summary(s_dat_test)
+```
+
+```{r}
+model_lpm1 <- lm(sobj$formula, data = sobj$data)
+summary(model_lpm1)
+pred_vals_lpm <- predict(model_lpm1, s_dat_test)
+pred_model_lpm1 <- (pred_vals_lpm > 0.5)
+table(pred = pred_model_lpm1, true = dat_test$Overweight)
+```
+#Model lpm1 is showing that the model predicted People Not over weight are 580 wih error of 126, givig the percentage error equal: 17.8% While people over weight are 1519 with an error of 161, giving the percentage error equal 9.5%
+```{r}
+126/(580+126)
+161/(1519+161)
+```
+
+
+```{r}
+model_logit1 <- glm(sobj$formula, family = binomial, data = sobj$data)
+summary(model_logit1)
+pred_vals <- predict(model_logit1, s_dat_test, type = "response")
+pred_model_logit1 <- (pred_vals > 0.5)
+table(pred = pred_model_logit1, true = dat_test$Overweight)
+```
+
+# Model logit1 is showing that the model predicted People NOT Overweight are 705 wih error of 86, givig the percentage error equal: 10.8% While people over weight are 1559 with an error of 36, giving the percentage error equal 2.25%
+```{r}
+86/(705+86)
+36/(36+1559)
+```
+
+
+```{r}
+require('randomForest')
+set.seed(54321)
+model_randFor <- randomForest(as.factor(Overweight) ~ ., data = sobj$data, importance=TRUE, proximity=TRUE)
+print(model_randFor)
+round(importance(model_randFor),2)
+varImpPlot(model_randFor)
+pred_model1 <- predict(model_randFor,  s_dat_test)
+table(pred = pred_model1, true = dat_test$Overweight)
+```
+# According to forest model the error percent is:
+
+#Predicted people who are not overweight: 0.01190476
+#Predicted people who are overweight:0.01570681
